@@ -46,21 +46,35 @@ module DUT #(
     .inst(inst)
   );
 
-  typedef enum logic [3:0] {
+  typedef enum logic [4:0] {
     S_IDLE,
     S_P1_INIT,
     S_P1_PAIR,
+    S_P1_LOAD_A_H,
+    S_P1_LOAD_A_L,
+    S_P1_LOAD_B_H,
+    S_P1_LOAD_B_L,
     S_P1_BITS,
     S_P1_STORE_MIN,
     S_P1_STORE_MAX,
     S_P2_INIT,
     S_P2_PAIR,
+    S_P2_LOAD_A_H,
+    S_P2_LOAD_A_L,
+    S_P2_LOAD_B_H,
+    S_P2_LOAD_B_L,
+    S_P2_CALC,
     S_P2_STORE_MIN_H,
     S_P2_STORE_MIN_L,
     S_P2_STORE_MAX_H,
     S_P2_STORE_MAX_L,
     S_P3_INIT,
     S_P3_PAIR,
+    S_P3_LOAD_A_H,
+    S_P3_LOAD_A_L,
+    S_P3_LOAD_B_H,
+    S_P3_LOAD_B_L,
+    S_P3_PREP,
     S_P3_MUL,
     S_P3_STORE
   } state_t;
@@ -77,29 +91,91 @@ module DUT #(
   logic [4:0] dist5;
   logic [4:0] min_ham;
   logic [4:0] max_ham;
-  logic [15:0] dist16;
   logic [15:0] min_abs;
   logic [15:0] max_abs;
-  logic signed [16:0] diff17;
   logic sign_product;
-  logic [15:0] multiplicand_abs;
   logic [15:0] multiplier_shift;
   logic [31:0] multiplicand_shift;
   logic [31:0] product_acc;
   logic [31:0] product_final;
   logic [4:0] mul_bit;
 
-  assign dm_wen    = 1'b0;
-  assign dm_addr   = 8'd0;
-  assign dm_dat_in = 8'd0;
-
-  function automatic logic [15:0] load16(input logic [4:0] idx);
-    load16 = {dm.core[{idx, 1'b0}], dm.core[{idx, 1'b0} + 8'd1]};
-  endfunction
-
   function automatic logic [15:0] abs16(input logic [15:0] x);
     abs16 = x[15] ? (~x + 16'd1) : x;
   endfunction
+
+  function automatic logic [15:0] abs_diff16(input logic [15:0] lhs, input logic [15:0] rhs);
+    logic signed [16:0] diff;
+    begin
+      diff = $signed({lhs[15], lhs}) - $signed({rhs[15], rhs});
+      abs_diff16 = diff[16] ? (17'sd0 - diff) : diff;
+    end
+  endfunction
+
+  always @* begin
+    dm_wen    = 1'b0;
+    dm_addr   = 8'd0;
+    dm_dat_in = 8'd0;
+
+    case (state)
+      S_P1_LOAD_A_H, S_P2_LOAD_A_H: dm_addr = {j, 1'b0};
+      S_P1_LOAD_A_L, S_P2_LOAD_A_L: dm_addr = {j, 1'b0} + 8'd1;
+      S_P1_LOAD_B_H, S_P2_LOAD_B_H: dm_addr = {k, 1'b0};
+      S_P1_LOAD_B_L, S_P2_LOAD_B_L: dm_addr = {k, 1'b0} + 8'd1;
+
+      S_P3_LOAD_A_H: dm_addr = {prod_idx[3:0], 2'b00};
+      S_P3_LOAD_A_L: dm_addr = {prod_idx[3:0], 2'b00} + 8'd1;
+      S_P3_LOAD_B_H: dm_addr = {prod_idx[3:0], 2'b00} + 8'd2;
+      S_P3_LOAD_B_L: dm_addr = {prod_idx[3:0], 2'b00} + 8'd3;
+
+      S_P1_STORE_MIN: begin
+        dm_wen    = 1'b1;
+        dm_addr   = 8'd64;
+        dm_dat_in = {3'd0, min_ham};
+      end
+      S_P1_STORE_MAX: begin
+        dm_wen    = 1'b1;
+        dm_addr   = 8'd65;
+        dm_dat_in = {3'd0, max_ham};
+      end
+      S_P2_STORE_MIN_H: begin
+        dm_wen    = 1'b1;
+        dm_addr   = 8'd66;
+        dm_dat_in = min_abs[15:8];
+      end
+      S_P2_STORE_MIN_L: begin
+        dm_wen    = 1'b1;
+        dm_addr   = 8'd67;
+        dm_dat_in = min_abs[7:0];
+      end
+      S_P2_STORE_MAX_H: begin
+        dm_wen    = 1'b1;
+        dm_addr   = 8'd68;
+        dm_dat_in = max_abs[15:8];
+      end
+      S_P2_STORE_MAX_L: begin
+        dm_wen    = 1'b1;
+        dm_addr   = 8'd69;
+        dm_dat_in = max_abs[7:0];
+      end
+      S_P3_STORE: begin
+        dm_wen  = store_idx < 3'd4;
+        dm_addr = 8'd64 + {prod_idx[3:0], 2'b00} + {5'd0, store_idx};
+        case (store_idx)
+          3'd0: dm_dat_in = product_final[31:24];
+          3'd1: dm_dat_in = product_final[23:16];
+          3'd2: dm_dat_in = product_final[15:8];
+          3'd3: dm_dat_in = product_final[7:0];
+          default: dm_dat_in = 8'd0;
+        endcase
+      end
+      default: begin
+        dm_wen    = 1'b0;
+        dm_addr   = 8'd0;
+        dm_dat_in = 8'd0;
+      end
+    endcase
+  end
 
   always_ff @(posedge clk) begin
     if (start) begin
@@ -136,8 +212,22 @@ module DUT #(
           state   <= S_P1_PAIR;
         end
         S_P1_PAIR: begin
-          a16     <= load16(j);
-          b16     <= load16(k);
+          state   <= S_P1_LOAD_A_H;
+        end
+        S_P1_LOAD_A_H: begin
+          a16[15:8] <= dm_dat_out;
+          state     <= S_P1_LOAD_A_L;
+        end
+        S_P1_LOAD_A_L: begin
+          a16[7:0] <= dm_dat_out;
+          state    <= S_P1_LOAD_B_H;
+        end
+        S_P1_LOAD_B_H: begin
+          b16[15:8] <= dm_dat_out;
+          state     <= S_P1_LOAD_B_L;
+        end
+        S_P1_LOAD_B_L: begin
+          b16[7:0] <= dm_dat_out;
           bit_idx <= 5'd0;
           dist5   <= 5'd0;
           state   <= S_P1_BITS;
@@ -170,11 +260,9 @@ module DUT #(
           end
         end
         S_P1_STORE_MIN: begin
-          dm.core[8'd64] <= {3'd0, min_ham};
           state <= S_P1_STORE_MAX;
         end
         S_P1_STORE_MAX: begin
-          dm.core[8'd65] <= {3'd0, max_ham};
           done <= 1'b1;
         end
 
@@ -186,15 +274,30 @@ module DUT #(
           state   <= S_P2_PAIR;
         end
         S_P2_PAIR: begin
-          a16    = load16(j);
-          b16    = load16(k);
-          diff17 = $signed(a16) - $signed(b16);
-          dist16 = diff17[16] ? (17'd0 - diff17) : diff17[15:0];
-          if (dist16 < min_abs) begin
-            min_abs <= dist16;
+          state <= S_P2_LOAD_A_H;
+        end
+        S_P2_LOAD_A_H: begin
+          a16[15:8] <= dm_dat_out;
+          state     <= S_P2_LOAD_A_L;
+        end
+        S_P2_LOAD_A_L: begin
+          a16[7:0] <= dm_dat_out;
+          state    <= S_P2_LOAD_B_H;
+        end
+        S_P2_LOAD_B_H: begin
+          b16[15:8] <= dm_dat_out;
+          state     <= S_P2_LOAD_B_L;
+        end
+        S_P2_LOAD_B_L: begin
+          b16[7:0] <= dm_dat_out;
+          state    <= S_P2_CALC;
+        end
+        S_P2_CALC: begin
+          if (abs_diff16(a16, b16) < min_abs) begin
+            min_abs <= abs_diff16(a16, b16);
           end
-          if (dist16 > max_abs) begin
-            max_abs <= dist16;
+          if (abs_diff16(a16, b16) > max_abs) begin
+            max_abs <= abs_diff16(a16, b16);
           end
           if (k == 5'd31) begin
             if (j == 5'd30) begin
@@ -202,25 +305,23 @@ module DUT #(
             end else begin
               j <= j + 5'd1;
               k <= j + 5'd2;
+              state <= S_P2_PAIR;
             end
           end else begin
             k <= k + 5'd1;
+            state <= S_P2_PAIR;
           end
         end
         S_P2_STORE_MIN_H: begin
-          dm.core[8'd66] <= min_abs[15:8];
           state <= S_P2_STORE_MIN_L;
         end
         S_P2_STORE_MIN_L: begin
-          dm.core[8'd67] <= min_abs[7:0];
           state <= S_P2_STORE_MAX_H;
         end
         S_P2_STORE_MAX_H: begin
-          dm.core[8'd68] <= max_abs[15:8];
           state <= S_P2_STORE_MAX_L;
         end
         S_P2_STORE_MAX_L: begin
-          dm.core[8'd69] <= max_abs[7:0];
           done <= 1'b1;
         end
 
@@ -229,10 +330,26 @@ module DUT #(
           state <= S_P3_PAIR;
         end
         S_P3_PAIR: begin
-          a16                = load16({prod_idx[3:0], 1'b0});
-          b16                = load16({prod_idx[3:0], 1'b0} + 5'd1);
+          state <= S_P3_LOAD_A_H;
+        end
+        S_P3_LOAD_A_H: begin
+          a16[15:8] <= dm_dat_out;
+          state     <= S_P3_LOAD_A_L;
+        end
+        S_P3_LOAD_A_L: begin
+          a16[7:0] <= dm_dat_out;
+          state    <= S_P3_LOAD_B_H;
+        end
+        S_P3_LOAD_B_H: begin
+          b16[15:8] <= dm_dat_out;
+          state     <= S_P3_LOAD_B_L;
+        end
+        S_P3_LOAD_B_L: begin
+          b16[7:0] <= dm_dat_out;
+          state    <= S_P3_PREP;
+        end
+        S_P3_PREP: begin
           sign_product       <= a16[15] ^ b16[15];
-          multiplicand_abs   <= abs16(a16);
           multiplier_shift   <= abs16(b16);
           multiplicand_shift <= {16'd0, abs16(a16)};
           product_acc        <= 32'd0;
@@ -254,13 +371,6 @@ module DUT #(
           end
         end
         S_P3_STORE: begin
-          case (store_idx)
-            3'd0: dm.core[8'd64 + {prod_idx[3:0], 2'b00}] <= product_final[31:24];
-            3'd1: dm.core[8'd65 + {prod_idx[3:0], 2'b00}] <= product_final[23:16];
-            3'd2: dm.core[8'd66 + {prod_idx[3:0], 2'b00}] <= product_final[15:8];
-            3'd3: dm.core[8'd67 + {prod_idx[3:0], 2'b00}] <= product_final[7:0];
-            default: begin end
-          endcase
           if (store_idx == 3'd3) begin
             if (prod_idx == 5'd15) begin
               done <= 1'b1;
