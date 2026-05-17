@@ -16,9 +16,14 @@ TEST_FILES := test_benches_export/test_files/test0.txt \
               test_benches_export/test_files/test8.txt \
               test_benches_export/test_files/test9.txt
 
-.PHONY: sim_prog1 sim_prog2 sim_prog3 sim_alu_tb sim_pc_tb sim_all clean
+.PHONY: asm sim_prog1 sim_prog2 sim_prog3 sim_alu_tb sim_pc_tb sim_cpu_smoke sim_all clean
 
-sim_all: sim_alu_tb sim_pc_tb sim_prog1 sim_prog2 sim_prog3
+sim_all: asm sim_alu_tb sim_pc_tb sim_cpu_smoke sim_prog1 sim_prog2 sim_prog3
+
+asm: software/program1.mem software/program2.mem software/program3.mem
+
+software/%.mem: software/%.asm software/aria_asm.py
+	python3 software/aria_asm.py $< -o $@ --listing software/$*.lst
 
 $(BUILD)/prog1/tb.sv: test_benches_export/program1/test_bench_new.sv
 	@mkdir -p $(dir $@)
@@ -36,13 +41,13 @@ $(BUILD)/%/test0.txt: $(TEST_FILES)
 	@mkdir -p $(dir $@)
 	@cp test_benches_export/test_files/test*.txt $(dir $@)
 
-$(BUILD)/prog1/sim.vvp: $(RTL) $(BUILD)/prog1/tb.sv $(BUILD)/prog1/test0.txt
+$(BUILD)/prog1/sim.vvp: $(RTL) software/program1.mem $(BUILD)/prog1/tb.sv $(BUILD)/prog1/test0.txt
 	$(IVERILOG) -g2012 -DPROG1 -o $@ $(RTL) $(BUILD)/prog1/tb.sv
 
-$(BUILD)/prog2/sim.vvp: $(RTL) $(BUILD)/prog2/tb.sv $(BUILD)/prog2/test0.txt
+$(BUILD)/prog2/sim.vvp: $(RTL) software/program2.mem $(BUILD)/prog2/tb.sv $(BUILD)/prog2/test0.txt
 	$(IVERILOG) -g2012 -DPROG2 -o $@ $(RTL) $(BUILD)/prog2/tb.sv
 
-$(BUILD)/prog3/sim.vvp: $(RTL) $(BUILD)/prog3/tb.sv $(BUILD)/prog3/test0.txt
+$(BUILD)/prog3/sim.vvp: $(RTL) software/program3.mem $(BUILD)/prog3/tb.sv $(BUILD)/prog3/test0.txt
 	$(IVERILOG) -g2012 -DPROG3 -o $@ $(RTL) $(BUILD)/prog3/tb.sv
 
 sim_prog1: $(BUILD)/prog1/sim.vvp
@@ -62,10 +67,17 @@ $(BUILD)/pc_tb.vvp: $(RTL) tb/pc_tb.sv
 	@mkdir -p $(BUILD)
 	$(IVERILOG) -g2012 -o $@ rtl/aria_pc.sv tb/pc_tb.sv
 
+$(BUILD)/cpu_smoke_tb.vvp: $(RTL) tb/cpu_smoke_tb.sv
+	@mkdir -p $(BUILD)
+	$(IVERILOG) -g2012 -DNO_IMEM_LOAD -o $@ $(RTL) tb/cpu_smoke_tb.sv
+
 sim_alu_tb: $(BUILD)/alu_tb.vvp
 	$(VVP) $<
 
 sim_pc_tb: $(BUILD)/pc_tb.vvp
+	$(VVP) $<
+
+sim_cpu_smoke: $(BUILD)/cpu_smoke_tb.vvp
 	$(VVP) $<
 
 clean:

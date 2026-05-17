@@ -5,32 +5,31 @@ module aria_imem #(
   output logic [8:0] inst
 );
 
-  always @* begin
-    inst = 9'b111_000_000; // HALT for unused ROM.
+  logic [8:0] rom[1024];
+  int i;
+
+  initial begin
+    for (i = 0; i < 1024; i++) begin
+      rom[i] = 9'b111_010_000; // HALT
+    end
+`ifdef NO_IMEM_LOAD
+    ;
+`elsif PROG1
+    $readmemb("../../software/program1.mem", rom);
+`elsif PROG2
+    $readmemb("../../software/program2.mem", rom);
+`elsif PROG3
+    $readmemb("../../software/program3.mem", rom);
+`else
     case (PROGRAM_ID)
-      1: begin
-        case (addr)
-          10'd0: inst = 9'b110_000000; // LDI 0
-          10'd1: inst = 9'b111_000_000; // HALT
-          default: inst = 9'b111_000_000;
-        endcase
-      end
-      2: begin
-        case (addr)
-          10'd0: inst = 9'b110_000000;
-          10'd1: inst = 9'b111_000_000;
-          default: inst = 9'b111_000_000;
-        endcase
-      end
-      3: begin
-        case (addr)
-          10'd0: inst = 9'b110_000000;
-          10'd1: inst = 9'b111_000_000;
-          default: inst = 9'b111_000_000;
-        endcase
-      end
-      default: inst = 9'b111_000_000;
+      1: $readmemb("../../software/program1.mem", rom);
+      2: $readmemb("../../software/program2.mem", rom);
+      3: $readmemb("../../software/program3.mem", rom);
+      default: ;
     endcase
+`endif
   end
+
+  assign inst = rom[addr];
 
 endmodule

@@ -24,7 +24,7 @@ module aria_decoder(
     cond       = inst[6:4];
     imm6       = inst[5:0];
     special_op = inst[5:3];
-    mem_write  = inst[6];
+    mem_write  = !inst[6];
 
     case (inst[8:7])
       2'b00: fmt = FMT_ALU;

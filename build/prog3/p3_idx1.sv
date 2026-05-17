@@ -1,0 +1,3 @@
+module p3_idx1; bit clk=0,start=1; wire done; int i; DUT D1(.clk(clk),.start(start),.done(done)); always #50 clk=!clk;
+always @(posedge clk) if(!start && D1.dm.core[128]==1 && (D1.pc==10'd120 || D1.pc==10'd124 || D1.pc==10'd180 || D1.pc==10'd212)) $display("pc=%0d m=%h%h%h%h mult=%h%h prod=%h%h%h%h cnt=%h out=%h",D1.pc,D1.dm.core[140],D1.dm.core[141],D1.dm.core[142],D1.dm.core[143],D1.dm.core[144],D1.dm.core[145],D1.dm.core[136],D1.dm.core[137],D1.dm.core[138],D1.dm.core[139],D1.dm.core[132],D1.dm.core[130]);
+initial begin $readmemb("test0.txt",D1.dm.core); #200 start=0; wait(done); #100; $finish; end endmodule
