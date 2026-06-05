@@ -128,7 +128,7 @@ module test_bench;
     #200ns start = 'b1;
 // load operands for program 3 into data memory 
     #100ns;
-    $readmemh("test3_2.txt",D1.dm.core);
+    $readmemb("test3_2.txt",D1.dm.core);
     for(int i=0; i<32; i++) begin
       Tmp[i] = {D1.dm.core[2*i],D1.dm.core[2*i+1]};	  // load values into mem, copy to Tmp array
       $display("%d:  %d",i,Tmp[i]);

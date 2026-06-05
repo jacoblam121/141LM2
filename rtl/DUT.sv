@@ -23,9 +23,25 @@ module DUT(
 
   logic [9:0] pc;
   logic [8:0] inst;
+  logic [1:0] imem_program_sel;
+
+`ifdef COMBINED
+  logic [1:0] active_program;
+  logic [1:0] next_program;
+
+  initial begin
+    active_program = 2'd0;
+    next_program   = 2'd0;
+  end
+
+  assign imem_program_sel = active_program;
+`else
+  assign imem_program_sel = 2'd0;
+`endif
 
   aria_imem imem(
     .addr(pc),
+    .program_sel(imem_program_sel),
     .inst(inst)
   );
 
@@ -208,6 +224,9 @@ module DUT(
       n_flag  <= 1'b0;
       c_flag  <= 1'b0;
       pc_page <= 2'd0;
+`ifdef COMBINED
+      active_program <= next_program;
+`endif
     end else if (!done) begin
       if (is_alu) begin
         z_flag <= alu_z;
@@ -223,6 +242,11 @@ module DUT(
 
       if (fmt == FMT_SPECIAL && special_op == 3'd2) begin
         done <= 1'b1;
+`ifdef COMBINED
+        if (next_program < 2'd2) begin
+          next_program <= next_program + 2'd1;
+        end
+`endif
       end
     end
   end
