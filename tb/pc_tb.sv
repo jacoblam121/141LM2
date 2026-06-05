@@ -1,6 +1,6 @@
 module pc_tb;
   logic clk;
-  logic start;
+  logic reset;
   logic halt;
   logic branch_taken;
   logic signed [3:0] branch_offset;
@@ -12,7 +12,7 @@ module pc_tb;
 
   aria_pc dut(
     .clk(clk),
-    .start(start),
+    .reset(reset),
     .halt(halt),
     .branch_taken(branch_taken),
     .branch_offset(branch_offset),
@@ -42,7 +42,7 @@ module pc_tb;
 
   initial begin
     clk = 1'b0;
-    start = 1'b1;
+    reset = 1'b1;
     halt = 1'b0;
     branch_taken = 1'b0;
     branch_offset = 4'sd0;
@@ -54,7 +54,7 @@ module pc_tb;
     step();
     check_pc(10'd0, "start reset");
 
-    start = 1'b0;
+    reset = 1'b0;
     step();
     check_pc(10'd1, "increment 1");
     step();

@@ -12,6 +12,10 @@ module DUT #(
   output logic done
 );
 
+  logic start_reset;
+
+  assign start_reset = start;
+
   logic       dm_wen;
   logic [7:0] dm_addr;
   logic [7:0] dm_dat_in;
@@ -69,7 +73,7 @@ module DUT #(
 
   aria_pc pc_unit(
     .clk(clk),
-    .start(start),
+    .reset(start_reset),
     .halt(done || (fmt == FMT_SPECIAL && special_op == 3'd2)),
     .branch_taken(fmt == FMT_BRANCH && branch_taken),
     .branch_offset(inst[3:0]),
@@ -89,7 +93,7 @@ module DUT #(
 
   aria_reg_file rf(
     .clk(clk),
-    .start(start),
+    .reset(start_reset),
     .wen(rf_wen),
     .raddr_a(rf_raddr_a),
     .raddr_b(rf_raddr_b),
@@ -147,9 +151,9 @@ module DUT #(
 
     dm_addr   = rf_rdata_b + mem_offset;
     dm_dat_in = rf_rdata_a;
-    dm_wen    = is_st && !done && !start;
+    dm_wen    = is_st && !done && !start_reset;
 
-    if (!done && !start) begin
+    if (!done && !start_reset) begin
       case (fmt)
         FMT_ALU: begin
           rf_wen   = !is_cmp;
@@ -200,7 +204,7 @@ module DUT #(
   end
 
   always_ff @(posedge clk) begin
-    if (start) begin
+    if (start_reset) begin
       done    <= 1'b0;
       z_flag  <= 1'b0;
       n_flag  <= 1'b0;

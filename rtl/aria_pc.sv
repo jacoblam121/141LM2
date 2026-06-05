@@ -1,6 +1,6 @@
 module aria_pc(
   input  logic        clk,
-  input  logic        start,
+  input  logic        reset,
   input  logic        halt,
   input  logic        branch_taken,
   input  logic signed [3:0] branch_offset,
@@ -17,7 +17,7 @@ module aria_pc(
   assign br_pc  = seq_pc + {{6{branch_offset[3]}}, branch_offset};
 
   always_ff @(posedge clk) begin
-    if (start) begin
+    if (reset) begin
       pc <= 10'd0;
     end else if (halt) begin
       pc <= pc;

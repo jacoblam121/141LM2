@@ -1,6 +1,6 @@
 module aria_reg_file(
   input  logic       clk,
-  input  logic       start,
+  input  logic       reset,
   input  logic       wen,
   input  logic [2:0] raddr_a,
   input  logic [2:0] raddr_b,
@@ -14,7 +14,7 @@ module aria_reg_file(
   int i;
 
   always_ff @(posedge clk) begin
-    if (start) begin
+    if (reset) begin
       for (i = 0; i < 8; i++) begin
         regs[i] <= 8'd0;
       end
