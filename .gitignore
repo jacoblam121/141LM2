@@ -1,2 +1,16 @@
 documentation/
 sample_project/
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+build/
+
+tb/branch_tb.sv
+tb/cpu_edge_tb.sv
+tb/decoder_tb.sv
+tb/memory_reg_tb.sv
+
+tests/test_aria_asm_edge.py
+tests/test_program_oracles.py

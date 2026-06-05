@@ -1,5 +1,5 @@
 ; Program 1: minimum and maximum Hamming distance across 32 16-bit operands.
-; Scratch at R7=128: [0]=j, [1]=k, [2]=min, [3]=max.
+; Scratch at R7=128: [0]=j, [1]=k, [2]=min, [3]=max, [4]=bit count.
 
 start:
   ; Initialize scratch base, constant 1, j, min, and max.
@@ -49,151 +49,54 @@ inner_loop:
   LI 0
   PUT R1
 
-  ; XOR the high bytes. Each LSR below shifts one bit into carry;
-  ; if carry is set, increment the popcount in R1.
+  ; XOR the high bytes and count the set bits in an 8-cycle loop.
   LD R6, 0
   PUT R4
   LD R5, 0
   XOR R4
   PUT R4
 
-pop_hi_0:
+  LI 16
+  LSR
+  ST R7, 4
+count_hi_loop:
   GET R4
   LSR
   PUT R4
-  BNC pop_hi_1
+  BNC count_hi_skip
   GET R1
   ADD R3
   PUT R1
-pop_hi_1:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_hi_2
-  GET R1
-  ADD R3
-  PUT R1
-pop_hi_2:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_hi_3
-  GET R1
-  ADD R3
-  PUT R1
-pop_hi_3:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_hi_4
-  GET R1
-  ADD R3
-  PUT R1
-pop_hi_4:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_hi_5
-  GET R1
-  ADD R3
-  PUT R1
-pop_hi_5:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_hi_6
-  GET R1
-  ADD R3
-  PUT R1
-pop_hi_6:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_hi_7
-  GET R1
-  ADD R3
-  PUT R1
-pop_hi_7:
-  GET R4
-  LSR
-  PUT R4
-  BNC low_byte
-  GET R1
-  ADD R3
-  PUT R1
+count_hi_skip:
+  LD R7, 4
+  SUB R3
+  ST R7, 4
+  JNZ count_hi_loop, R2
 
 low_byte:
-  ; Repeat the same unrolled popcount for the low-byte XOR.
+  ; XOR the low bytes and count the set bits in an 8-cycle loop.
   LD R6, 1
   PUT R4
   LD R5, 1
   XOR R4
   PUT R4
 
-pop_lo_0:
+  LI 16
+  LSR
+  ST R7, 4
+count_lo_loop:
   GET R4
   LSR
   PUT R4
-  BNC pop_lo_1
+  BNC count_lo_skip
   GET R1
   ADD R3
   PUT R1
-pop_lo_1:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_lo_2
-  GET R1
-  ADD R3
-  PUT R1
-pop_lo_2:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_lo_3
-  GET R1
-  ADD R3
-  PUT R1
-pop_lo_3:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_lo_4
-  GET R1
-  ADD R3
-  PUT R1
-pop_lo_4:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_lo_5
-  GET R1
-  ADD R3
-  PUT R1
-pop_lo_5:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_lo_6
-  GET R1
-  ADD R3
-  PUT R1
-pop_lo_6:
-  GET R4
-  LSR
-  PUT R4
-  BNC pop_lo_7
-  GET R1
-  ADD R3
-  PUT R1
-pop_lo_7:
-  GET R4
-  LSR
-  PUT R4
-  BNC update_min
-  GET R1
-  ADD R3
-  PUT R1
+count_lo_skip:
+  LD R7, 4
+  SUB R3
+  ST R7, 4
+  JNZ count_lo_loop, R2
 
 update_min:
   ; If current distance R1 is smaller than min, replace min.
