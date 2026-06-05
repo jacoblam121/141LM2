@@ -16,8 +16,8 @@ module test_bench;
 		 .done (done )); 
 
 always begin
-  # clk = 'b1;
-  # clk = 'b0;
+  #50 clk = 'b1;
+  #50 clk = 'b0;
 end
 
 // number of tests
@@ -31,7 +31,7 @@ initial begin
 // first operand = {data_mem[0],data_mem[1]}  
 //   endian order doesn't matter for program 1, as long as consistent for all values (why?)
   for(int loop_ct=0; loop_ct<itrs; loop_ct++) begin
-    #;
+    #100;
 	Min = 'd16;						         // start test bench Min at max value
 	Max = 'd0;						         // start test bench Max at min value
     case(loop_ct)
@@ -70,8 +70,8 @@ initial begin
         end
 	  end
     end   
-	# start = 'b0; 
-  # wait (done);						 // avoid false done signals on startup
+	#200 start = 'b0; 
+  #200 wait (done);						 // avoid false done signals on startup
 
 // check results in data_mem[64] and [65] (Minimum and Maximum distances, respectively)
     if(Min == D1.dm.core[64]) begin
@@ -92,13 +92,13 @@ initial begin
       $display("Max pair = %d, %d",Max1, Max2);
       $display("Max valu = %b, %b",Tmp[Max1],Tmp[Max2]);// {D1.dm.core[2*Max1],D1.dm.core[2*Max1+1]},{D1.dm.core[2*Max2],D1.dm.core[2*Max2+1]});
     end
-    # start = 'b1;
+    #200 start = 'b1;
 	if(loop_ct==itrs-1) begin
         $display("Minimum correct %d/%d", min_pass, itrs);
         $display("Maximum correct %d/%d", max_pass, itrs);
         $stop;
 	end
-	# start = 'b0;
+	#200 start = 'b0;
   end
 end
 // Hamming distance (anticorrelation) between two 16-bit numbers 

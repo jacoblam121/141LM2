@@ -25,15 +25,15 @@ asm: software/program1.mem software/program2.mem software/program3.mem
 software/%.mem: software/%.asm software/aria_asm.py
 	python3 software/aria_asm.py $< -o $@ --listing software/$*.lst
 
-$(BUILD)/prog1/tb.sv: test_benches_export/program1/test_bench_new.sv
+$(BUILD)/prog1/tb.sv: test_benches_export/program1/test_bench_new.sv Makefile
 	@mkdir -p $(dir $@)
 	@perl -pe 's/\#([0-9]+)ns/\#$$1/g' $< > $@
 
-$(BUILD)/prog2/tb.sv: test_benches_export/program2/test_bench2_new.sv
+$(BUILD)/prog2/tb.sv: test_benches_export/program2/test_bench2_new.sv Makefile
 	@mkdir -p $(dir $@)
 	@perl -pe 's/\#([0-9]+)ns/\#$$1/g' $< > $@
 
-$(BUILD)/prog3/tb.sv: test_benches_export/program3/test_bench3_new.sv
+$(BUILD)/prog3/tb.sv: test_benches_export/program3/test_bench3_new.sv Makefile
 	@mkdir -p $(dir $@)
 	@perl -pe 's/\#([0-9]+)ns/\#$$1/g' $< > $@
 
