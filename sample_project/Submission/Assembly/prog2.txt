@@ -1,0 +1,223 @@
+NOP
+NOP
+NOP
+SPC R0			# mem address for loop branch
+
+# prepare for next loop iteration
+PRMO R1
+PRME R2
+PRME R6
+CLR R6
+
+LDI %1111, R6	# R6 = 15
+SSL R6			# R6 *= 2
+ADDI R1, R6		# R6 += R1
+
+LDM R6, R2		# load lower bits into R2
+INC R6
+PRMO R3
+LDM R6, R3		# load upper bits into R3
+
+CLR R6			# R6 = 0
+
+## q8
+CPY R3, R4		# R4 = R3 = b11-5, p8
+SSR R4			# R4 >> 1
+
+XORB R4
+SSLC R6			# append q8 to R6
+
+## q4
+SSL R4
+HSR R4          # R4 = upper >> 4
+
+PRMO R5
+LDI %1110, R5
+HSL R5          # R5 = 1110_0000
+
+PRME R2
+ANDI R2, R5     # R5 = b4 b3 b2 0_0000
+
+ORI R4, R5      # R5 = b4 b3 b2 0 b11 b10 b9 b8
+XORB R5
+SSLC R6         # append q4 to R6
+
+## q2
+PRME R4
+LDI %1100, R4
+HSL R4
+LDI %1100, R4   # R4 = 1100_1100
+
+PRMO R3
+ANDI R3, R4
+SSR R4
+SSR R4          # R4 = 00 b11 b10 00 b7 b6
+
+PRMO R5
+LDI %1100, R5
+HSL R5
+LDI %1000, R5
+
+PRME R2
+ANDI R2, R5
+
+ORI R4, R5      # R5 = b4 b3 b11 b10 b1 0 b7 b6
+XORB R5
+SSLC R6         # append q2 to R6
+
+## q1
+PRME R4
+LDI %1010, R4
+HSL R4
+LDI %1010, R4
+
+PRMO R3
+ANDI R3, R4
+SSR R4
+
+PRMO R5
+LDI %1010, R5
+HSL R5
+LDI %1000, R5
+
+PRME R2
+ANDI R2, R5
+
+ORI R4, R5
+XORB R5
+SSLC R6     # append q1 to R6
+
+## q0
+CPY R2, R5
+PRMO R3
+XORB R3
+SSRC R5     # R5 = qu b4 b3 b2 p4 b1 p2 p1
+XORB R5
+SSLC R6     # R6 = 000 q8 q4 q2 q1 q0
+
+## given parities 
+PRME R4
+CLR R4
+INC R4
+ANDI R3, R4 # R4 = 0_ P8
+HSL R4
+
+PRMO R5
+PRME R2
+CLR R5
+INC R5
+HSL R5
+ANDI R2, R5
+SSR R5
+OR R5, R4   # R4 = 000 p8 p4 000
+
+LDI %0111, R5
+ANDI R2, R5
+OR R5, R4   # R4 = 000 p8 p4 p2 p1 p0
+
+PRME R4
+XOR R4, R6  # R7 = 000 c8 c4 c2 c1 c0
+
+## masking
+CLR R4
+LDI %1000, R4
+HSL R4
+
+PRMO R5
+PRMO R7
+CLR R5
+LDI %1111, R5
+SSL R5
+ANDI R7, R5
+OR R5, R4   # R4 = 100 c8 c4 c2 c1 0
+
+PRME R6
+PRME R4
+PRME R2
+LDM R4, R6  # load mask from memory table
+XORI R6, R2
+
+INC R4
+PRMO R3
+LDM R4, R6
+XORI R6, R3 
+
+## output
+PRME R2
+CLR R4
+LDI %1000, R4
+ANDI R2, R4
+SSL R4
+HSR R4      # R4 = 0_ b1
+
+PRMO R5
+CLR R5
+LDI %1110, R5
+HSL R5
+ANDI R2, R5
+HSR R5
+OR R5, R4   # R4 = 0_ b4 b3 b2 b1
+
+CLR R5
+LDI %1111, R5
+SSL R5
+PRMO R3
+ANDI R3, R5
+SSR R5
+HSL R5
+OR R5, R4   # R4 = b8 b7 b6 b5 b4 b2 b2 b1
+
+PRME R4
+STM R1, R4  # store lower bits
+
+CPY R3, R4
+HSR R4
+SSR R4      # R4 = 0_ b11 b10 b9
+
+CLR R6
+INC R6
+ANDI R7, R6 # R6 = c0
+
+PRMO R7
+PRME R3
+CLR R3
+LDI %1000, R3
+
+PRMO R5
+CLR R5
+LDI %0100, R5
+HSL R5
+
+CMP R7, R7
+BRFZ R3     # no error flags necessary, jump forward
+
+OR R5, R4  # R4 = 0100 0 b11 b10 b9
+
+SSR R3
+CLR R7
+CMP R7, R6
+
+BRFNE R3    # only 1 bit error, jump forward
+
+SSL R5
+OR R5, R4   # R4 = 1100 0 b11 b10 b9
+
+NOP         # relative branch target
+NOP
+NOP
+
+INC R1
+PRME R4
+STM R1, R4  # store upper bits
+
+## loop logic
+INC R1      # now +=2 since start of loop
+PRME R2
+LDI %1111, R2
+SSL R2
+CMP R2, R1
+
+PRME R0
+BNE R0      # loop until R0 == 30 (15 iterations)
+
+EXIT        # we're done

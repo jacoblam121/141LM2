@@ -1,0 +1,181 @@
+# load 30 into R0, represents memory offset
+CLR R0
+LDI %1111, R0
+SSL R0
+
+PRMO R1 # loop index
+
+NOP
+NOP
+NOP
+SPC R2 # loop branch point
+
+CMPR
+PRMO R3
+PRME R4
+PRME R6
+
+LDM R1, R3 # load lower bits
+INC R1
+LDM R1, R4 # load higher bits
+
+CPY R4, R6
+HSL R6 		# R6 = 0 b11 b10 b9 0000
+
+PRMO R7
+CPY R3, R7
+HSR R7 		# R7 = 0000 b8 b7 b6 b5
+
+PRME R6
+ORI R6, R7 	# R6 = 0 b11 b10 b9 b8 b7 b6 b5
+
+XORB R6 # calculate p8
+SSLC R6 # append to R6
+
+# store higher bits
+ADDI R0, R1 # R1 += R0
+STM R1, R6
+DEC R1
+
+PRMO R5
+CLR R5
+XORB R6
+SSRC R5
+HSR R5 # R5 = 0000 pu 000
+
+# set up lower bits
+PRME R6
+CLR R6
+LDI %1110, R6
+ANDI R3, R6
+SSR R6 # R6 = 0000 0 b4 b3 b2
+
+ORI R6, R5 # R5 = 0000 pu b4 b3 b2
+
+# p4
+PRME R4
+CPY R4, R6 # R6 = 0000 0 b11 b10 b9
+HSL R6
+SSL R6 # R6 = b11 b10 b9 0 0000
+
+PRMO R7
+
+CLR R7
+LDI %1000, R7
+HSL R7 # R7 = 1000 0000
+ANDI R3, R7
+HSR R7
+SSL R7 # R7 = 000 b8 0000
+
+OR R7, R6 # R6 = b11 b10 b9 b8 0000
+CLR R7
+
+LDI %1110, R7
+ANDI R3, R7
+
+OR R7, R6  # R6 = b11 b10 b9 b8 b4 b3 b2 0
+CLR R7
+
+PRME R6
+PRMO R5
+
+XORB R6
+SSLC R5 # R5 = 000 pu b4 b3 b2 p4
+SSL R5
+
+# b1
+CLR R6
+INC R6
+ANDI R3, R6
+ORI R6, R5 # R5 = 00 pu b4 b3 b2 p4 b1
+
+# p2
+CLR R6
+LDI %0110, R6
+
+PRME R4
+ANDI R4, R6
+HSL R6
+SSL R6 # R6 = b11 b10 00 0000
+
+PRMO R7
+CLR R7
+LDI %0110, R7
+HSL R7
+
+ANDI R3, R7
+SSR R7
+OR R7, R6 # R6 = b11 b10 b7 b6 0000
+
+CLR R7
+LDI %1101, R7
+ANDI R3, R7
+OR R7, R6 # R6 = b11 b10 b7 b6 b4 b3 0 b1
+
+PRME R6
+PRMO R5
+
+XORB R6
+SSLC R5 # R5 = 0 pu b4 b3 b2 p4 b1 p2
+
+# p1
+CLR R6
+PRME R4
+
+LDI %0101, R6
+ANDI R4, R6
+HSL R6
+SSL R6 # R6 = b11 0 b9
+
+PRMO R7
+CLR R7
+LDI %0100, R7
+HSL R7
+ANDI R3, R7
+SSR R7
+SSR R7
+
+OR R7, R6 # R6 = b11 0 b9 b7
+
+CLR R7
+LDI %1100, R7
+SSL R7
+ANDI R3, R7
+SSR R7
+
+OR R7, R6 # R6 = b11 0 b9 b7 b5 b4
+
+LDI %0011, R7
+ANDI R3, R7
+OR R7, R6 # R6 = b11 0 b9 b7 b5 b4 b2 b1
+
+PRME R6
+PRMO R5
+
+XORB R6
+SSLC R5 # R5 = pu b4 b3 b2 p4 b1 p2 p1
+
+# p0
+# thanks to pu, p0 = ^R5
+XORB R5
+SSLC R5 # = R5 = b4 b3 b2 p4 b1 p2 p1 p0
+
+# store lower bits
+STM R1, R5
+
+# loop logic
+SUBI R0, R1 # R1 -= R0
+INC R1
+INC R1 # loop index += 2
+
+CLR R5
+CLR R6
+PRMO R7
+CLR R7
+
+PRME R2
+
+CMP R0, R1
+BNE R2 # loop if index hasn't reached 30 (15 iterations total)
+
+EXIT # we're done

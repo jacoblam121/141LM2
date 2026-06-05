@@ -41,22 +41,38 @@ $(BUILD)/%/test0.txt: $(TEST_FILES)
 	@mkdir -p $(dir $@)
 	@cp test_benches_export/test_files/test*.txt $(dir $@)
 
-$(BUILD)/prog1/sim.vvp: $(RTL) software/program1.mem $(BUILD)/prog1/tb.sv $(BUILD)/prog1/test0.txt
-	$(IVERILOG) -g2012 -DPROG1 -o $@ $(RTL) $(BUILD)/prog1/tb.sv
+$(BUILD)/prog1/program.mem: software/program1.mem
+	@mkdir -p $(dir $@)
+	@cp $< $@
 
-$(BUILD)/prog2/sim.vvp: $(RTL) software/program2.mem $(BUILD)/prog2/tb.sv $(BUILD)/prog2/test0.txt
-	$(IVERILOG) -g2012 -DPROG2 -o $@ $(RTL) $(BUILD)/prog2/tb.sv
+$(BUILD)/prog2/program.mem: software/program2.mem
+	@mkdir -p $(dir $@)
+	@cp $< $@
 
-$(BUILD)/prog3/sim.vvp: $(RTL) software/program3.mem $(BUILD)/prog3/tb.sv $(BUILD)/prog3/test0.txt
-	$(IVERILOG) -g2012 -DPROG3 -o $@ $(RTL) $(BUILD)/prog3/tb.sv
+$(BUILD)/prog3/program.mem: software/program3.mem
+	@mkdir -p $(dir $@)
+	@cp $< $@
 
-sim_prog1: $(BUILD)/prog1/sim.vvp
+$(BUILD)/program.mem: software/program1.mem
+	@mkdir -p $(dir $@)
+	@cp $< $@
+
+$(BUILD)/prog1/sim.vvp: $(RTL) $(BUILD)/prog1/tb.sv $(BUILD)/prog1/test0.txt
+	$(IVERILOG) -g2012 -o $@ $(RTL) $(BUILD)/prog1/tb.sv
+
+$(BUILD)/prog2/sim.vvp: $(RTL) $(BUILD)/prog2/tb.sv $(BUILD)/prog2/test0.txt
+	$(IVERILOG) -g2012 -o $@ $(RTL) $(BUILD)/prog2/tb.sv
+
+$(BUILD)/prog3/sim.vvp: $(RTL) $(BUILD)/prog3/tb.sv $(BUILD)/prog3/test0.txt
+	$(IVERILOG) -g2012 -o $@ $(RTL) $(BUILD)/prog3/tb.sv
+
+sim_prog1: $(BUILD)/prog1/sim.vvp $(BUILD)/prog1/program.mem
 	printf 'finish\n' | (cd $(BUILD)/prog1 && $(VVP) sim.vvp)
 
-sim_prog2: $(BUILD)/prog2/sim.vvp
+sim_prog2: $(BUILD)/prog2/sim.vvp $(BUILD)/prog2/program.mem
 	printf 'finish\n' | (cd $(BUILD)/prog2 && $(VVP) sim.vvp)
 
-sim_prog3: $(BUILD)/prog3/sim.vvp
+sim_prog3: $(BUILD)/prog3/sim.vvp $(BUILD)/prog3/program.mem
 	printf 'finish\n' | (cd $(BUILD)/prog3 && $(VVP) sim.vvp)
 
 $(BUILD)/alu_tb.vvp: $(RTL) tb/alu_tb.sv
@@ -69,7 +85,7 @@ $(BUILD)/pc_tb.vvp: $(RTL) tb/pc_tb.sv
 
 $(BUILD)/cpu_smoke_tb.vvp: $(RTL) tb/cpu_smoke_tb.sv
 	@mkdir -p $(BUILD)
-	$(IVERILOG) -g2012 -DNO_IMEM_LOAD -o $@ $(RTL) tb/cpu_smoke_tb.sv
+	$(IVERILOG) -g2012 -o $@ $(RTL) tb/cpu_smoke_tb.sv
 
 sim_alu_tb: $(BUILD)/alu_tb.vvp
 	$(VVP) $<
@@ -77,8 +93,8 @@ sim_alu_tb: $(BUILD)/alu_tb.vvp
 sim_pc_tb: $(BUILD)/pc_tb.vvp
 	$(VVP) $<
 
-sim_cpu_smoke: $(BUILD)/cpu_smoke_tb.vvp
-	$(VVP) $<
+sim_cpu_smoke: $(BUILD)/cpu_smoke_tb.vvp $(BUILD)/program.mem
+	(cd $(BUILD) && $(VVP) cpu_smoke_tb.vvp)
 
 clean:
 	rm -rf $(BUILD)

@@ -1,12 +1,4 @@
-module DUT #(
-`ifdef PROG2
-  parameter int PROGRAM_ID = 2
-`elsif PROG3
-  parameter int PROGRAM_ID = 3
-`else
-  parameter int PROGRAM_ID = 1
-`endif
-)(
+module DUT(
   input  logic clk,
   input  logic start,
   output logic done
@@ -32,7 +24,7 @@ module DUT #(
   logic [9:0] pc;
   logic [8:0] inst;
 
-  aria_imem #(.PROGRAM_ID(PROGRAM_ID)) imem(
+  aria_imem imem(
     .addr(pc),
     .inst(inst)
   );
