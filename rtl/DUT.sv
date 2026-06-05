@@ -1,12 +1,4 @@
-module DUT #(
-`ifdef PROG2
-  parameter int PROGRAM_ID = 2
-`elsif PROG3
-  parameter int PROGRAM_ID = 3
-`else
-  parameter int PROGRAM_ID = 1
-`endif
-)(
+module DUT(
   input  logic clk,
   input  logic start,
   output logic done
@@ -32,12 +24,18 @@ module DUT #(
   logic [9:0] pc;
   logic [8:0] inst;
 
-  aria_imem #(.PROGRAM_ID(PROGRAM_ID)) imem(
+  aria_imem imem(
     .addr(pc),
     .inst(inst)
   );
 
-  aria_fmt_t fmt;
+  localparam logic [2:0] FMT_ALU     = 3'd0;
+  localparam logic [2:0] FMT_MEM     = 3'd1;
+  localparam logic [2:0] FMT_BRANCH  = 3'd2;
+  localparam logic [2:0] FMT_LDI     = 3'd3;
+  localparam logic [2:0] FMT_SPECIAL = 3'd4;
+
+  logic [2:0] fmt;
   logic [3:0] alu_op;
   logic [2:0] reg_sel;
   logic [2:0] cond;

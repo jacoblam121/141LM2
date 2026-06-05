@@ -1,14 +1,6 @@
-typedef enum logic [2:0] {
-  FMT_ALU,
-  FMT_MEM,
-  FMT_BRANCH,
-  FMT_LDI,
-  FMT_SPECIAL
-} aria_fmt_t;
-
 module aria_decoder(
   input  logic [8:0] inst,
-  output aria_fmt_t  fmt,
+  output logic [2:0] fmt,
   output logic [3:0] alu_op,
   output logic [2:0] reg_sel,
   output logic [2:0] cond,
@@ -16,6 +8,12 @@ module aria_decoder(
   output logic [2:0] special_op,
   output logic       mem_write
 );
+
+  localparam logic [2:0] FMT_ALU     = 3'd0;
+  localparam logic [2:0] FMT_MEM     = 3'd1;
+  localparam logic [2:0] FMT_BRANCH  = 3'd2;
+  localparam logic [2:0] FMT_LDI     = 3'd3;
+  localparam logic [2:0] FMT_SPECIAL = 3'd4;
 
   always @* begin
     fmt        = FMT_SPECIAL;
