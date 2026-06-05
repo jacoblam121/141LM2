@@ -63,6 +63,14 @@ module DUT #(
   logic       jr_en;
   logic [1:0] pc_page;
 
+  logic       rf_wen;
+  logic [2:0] rf_raddr_a;
+  logic [2:0] rf_raddr_b;
+  logic [2:0] rf_waddr;
+  logic [7:0] rf_wdata;
+  logic [7:0] rf_rdata_a;
+  logic [7:0] rf_rdata_b;
+
   aria_branch branch_unit(
     .cond(cond),
     .z(z_flag),
@@ -82,14 +90,6 @@ module DUT #(
     .jr_addr(rf_rdata_b),
     .pc(pc)
   );
-
-  logic       rf_wen;
-  logic [2:0] rf_raddr_a;
-  logic [2:0] rf_raddr_b;
-  logic [2:0] rf_waddr;
-  logic [7:0] rf_wdata;
-  logic [7:0] rf_rdata_a;
-  logic [7:0] rf_rdata_b;
 
   aria_reg_file rf(
     .clk(clk),
