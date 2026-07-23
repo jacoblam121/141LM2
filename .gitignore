@@ -14,3 +14,4 @@ tb/memory_reg_tb.sv
 
 tests/test_aria_asm_edge.py
 tests/test_program_oracles.py
+*.pdf

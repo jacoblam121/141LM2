@@ -49,6 +49,7 @@ initial begin
 	    7: $readmemb("test7.txt",D1.dm.core);
         8: $readmemb("test8.txt",D1.dm.core);
         9: $readmemb("test9.txt",D1.dm.core);
+        10: $readmemb("test10.txt",D1.dm.core);
     endcase
     for(int i=0; i<32; i++) begin
       Tmp[i] = {D1.dm.core[2*i],D1.dm.core[2*i+1]};	  // load values into mem, copy to Tmp array
